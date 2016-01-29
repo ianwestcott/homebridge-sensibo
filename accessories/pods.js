@@ -192,15 +192,13 @@ function SensiboPodAccessory(platform, device) {
 		}
 		if (!that.state.updatetime) that.state.updatetime = rightnow; 
 		//Update the State
-		var data
-		that.platform.api.getState(that.deviceid, function(myData) {
-			data = myData;
-			if (data !== undefined && data.length>0 && data[0].status=="Success" && data[0].acState !== undefined) {
-				that.state.on = data[0].acState.on;
-				that.state.targetTemperature = data[0].acState.targetTemperature;
-				that.state.temperatureUnit = data[0].acState.temperatureUnit;
-				that.state.mode = data[0].acState.mode;
-				that.state.fanLevel = data[0].acState.fanLevel;
+		that.platform.api.getState(that.deviceid, function(acState) {
+			if (acState !== undefined ) {
+				that.state.on = acState.on;
+				that.state.targetTemperature = acState.targetTemperature;
+				that.state.temperatureUnit = acState.temperatureUnit;
+				that.state.mode = acState.mode;
+				that.state.fanLevel = acState.fanLevel;
 				that.state.updatetime = new Date(); //Set our last update time.
 			}
 			callback();
