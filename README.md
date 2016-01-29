@@ -1,4 +1,4 @@
-# homebidge-sensibo
+# homebridge-sensibo
 [Homebridge](https://github.com/nfarina/homebridge) platform plugin for the Sensibo
 
 # Installation
