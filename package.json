@@ -17,6 +17,5 @@
 		"homebridge": ">=0.2.5"
 	},
 	"dependencies": {
-		"deasync": ">0.0.1"
 	}
 }

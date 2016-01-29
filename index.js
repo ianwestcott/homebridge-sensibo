@@ -21,24 +21,22 @@ function SensiboPlatform(log, config) {
 	this.api=sensibo;
 	this.log = log;
 	this.deviceLookup = {};
-	//https://home.sensibo.com/api/v2/users/me/pods?fields=id,room&apiKey=p7JXpQgkE8x47BHNxrnzhgggMGHq6M
-	//https://home.sensibo.com/api/v2/pods/dHLbtbb7/acStates?fields=status,reason,acState&limit=1&apiKey=p7JXpQgkE8x47BHNxrnzhgggMGHq6M
-	//                        /api/v2/pods/d6VXnFPw/measurements?fields=status,reason,acState&limit=1&apiKey=p7JXpQgkE8x47BHNxrnzhgggMGHq6M"
-	//https://home.sensibo.com/api/v2/pods/dHLbtbb7/measurements?apiKey=p7JXpQgkE8x47BHNxrnzhgggMGHq6M
 }
 
 SensiboPlatform.prototype = {
 	reloadData: function (callback) {
 		//This is called when we need to refresh all Wink device information.
-		this.log("Refreshing Wink Data");
-		var that = this;
+		//this.log("Refreshing Sensibo Data");
+		for (var i = 0; i < this.deviceLookup.length; i++) {
+			this.deviceLookup[i].loadData();
+		}
 	},
 	accessories: function (callback) {
 		this.log("Fetching Sensibo devices.");
 
 		var that = this;
 		var foundAccessories = [];
-		this.deviceLookup = {};
+		this.deviceLookup = [];
 
 		var refreshLoop = function () {
 			setInterval(that.reloadData.bind(that), 30000);
@@ -54,7 +52,7 @@ SensiboPlatform.prototype = {
 
 					if (accessory != undefined) {
 						that.log("Device Added - Group " + accessory.deviceGroup + ", ID " + accessory.deviceid + ", Name " + accessory.name);
-						that.deviceLookup[accessory.deviceid] = accessory;
+						that.deviceLookup.push(accessory);
 						foundAccessories.push(accessory);
 					}
 				}
