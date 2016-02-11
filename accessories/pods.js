@@ -65,7 +65,10 @@ function SensiboPodAccessory(platform, device) {
 					case "heat": //HomeKit only accepts HEAT/COOL, so we have to determine if we are Heating or Cooling.
 						callback(null, Characteristic.CurrentHeatingCoolingState.HEAT);
 						break;
-					default: //If it is fan_only or anything else then we'll report the thermostat as off.
+					case "heat": //If it is fan_only, HomeKit will report the CurrentHeatingCoolingState as AUTO.
+						callback(null, Characteristic.CurrentHeatingCoolingState.AUTO);
+						break;
+					default: //anything else then we'll report the thermostat as off.
 						callback(null, Characteristic.CurrentHeatingCoolingState.OFF);
 						break;
 				}
@@ -88,8 +91,10 @@ function SensiboPodAccessory(platform, device) {
 					that.state.fanLevel = 'auto';
 					that.state.mode = 'cool';
 					break;
+				//To turn the Fan on, we must set the Thermostat mode to Auto. 
 				case Characteristic.TargetHeatingCoolingState.AUTO:
 					that.state.on = true;
+					that.state.fanLevel = 'auto';
 					that.state.mode = 'fan';
 					break;				
 			};
@@ -125,32 +130,33 @@ function SensiboPodAccessory(platform, device) {
 		})
 
 	this.getService(Service.Thermostat)
-		.getCharacteristic(Characteristic.CurrentRelativeHumidity)
+		.Characteristic(Characteristic.CurrentRelativeHumidity)
 		.on('get', function(callback) {
 			callback(null, that.temp_humidity); 	 	
 		})
 
-	this.addService(Service.Fan)
-		.getCharacteristic(Characteristic.On)
+//This will switch the Sensibo Pod ON and OFF.
+//Siri Command example: Turn on the "LivingRoom" Thermostat, Turn off the "Device Name", etc.
+	this.getService(Service.Thermostat)
+		.addCharacteristic(Characteristic.On)
 		.on('get', function(callback) {
-			if (that.state.on && that.state.mode=='fan')
+			if (that.state.on=true)
 				callback(null, true);
-			else
+			else if (that.state.on=false)
 				callback(null, false); 	
 		})
 		.on('set', function(value, callback) {
 			callback();
 			if (value) {
 				that.state.on=true;
-				that.state.mode='fan';	
 			} else {
 				that.state.on=false;
 			}
 			that.platform.api.submitState(that.deviceid, that.state);
 		})
 
-	this.getService(Service.Fan)
-		.getCharacteristic(Characteristic.RotationSpeed)
+	this.getService(Service.Thermostat)
+		.addCharacteristic(Characteristic.RotationSpeed)
 		.on('get', function(callback) {
 			switch (that.state.fanLevel) {
 				case 'low':
