@@ -130,15 +130,15 @@ function SensiboPodAccessory(platform, device) {
 		})
 
 	this.getService(Service.Thermostat)
-		.Characteristic(Characteristic.CurrentRelativeHumidity)
+		.addCharacteristic(Characteristic.CurrentRelativeHumidity)
 		.on('get', function(callback) {
 			callback(null, that.temp_humidity); 	 	
 		})
 
 //This will switch the Sensibo Pod ON and OFF.
 //Siri Command example: Turn on the "LivingRoom" Thermostat, Turn off the "Device Name", etc.
-	this.getService(Service.Thermostat)
-		.addCharacteristic(Characteristic.On)
+	this.addService(Service.Switch)
+		.getCharacteristic(Characteristic.On)
 		.on('get', function(callback) {
 			if (that.state.on=true)
 				callback(null, true);
@@ -155,8 +155,8 @@ function SensiboPodAccessory(platform, device) {
 			that.platform.api.submitState(that.deviceid, that.state);
 		})
 
-	this.getService(Service.Thermostat)
-		.addCharacteristic(Characteristic.RotationSpeed)
+	this.addService(Service.Fan)
+		.getCharacteristic(Characteristic.RotationSpeed)
 		.on('get', function(callback) {
 			switch (that.state.fanLevel) {
 				case 'low':
