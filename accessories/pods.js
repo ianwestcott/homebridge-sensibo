@@ -19,7 +19,8 @@ module.exports = function (oAccessory, oService, oCharacteristic, ouuid) {
 		SensiboPodAccessory.prototype.getServices = getServices;
 		SensiboPodAccessory.prototype.refreshAll = refreshAll;
 		SensiboPodAccessory.prototype.refreshState = refreshState;
-		SensiboPodAccessory.prototype.refreshTemperature = refreshTemperature;	
+		SensiboPodAccessory.prototype.refreshTemperature = refreshTemperature;
+		SensiboPodAccessory.prototype.identify = identify;
 	
 	}
 	return SensiboPodAccessory;
@@ -61,6 +62,19 @@ function SensiboPodAccessory(platform, device) {
 	this.addService(Service.Thermostat);
 	this.addService(Service.Fan);
 	this.addService(Service.HumiditySensor);
+	
+	// AccessoryInformation characteristic
+	// Manufacturer characteristic
+	this.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.Manufacturer, "homebridge-sensibo");
+	
+	// Model characteristic	
+	this.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.Model, "version 0.2.0");
+	
+	// SerialNumber characteristic
+	this.getService(Service.AccessoryInformation)
+		.setCharacteristic(Characteristic.SerialNumber, "Pod ID: " + that.deviceid);
 	
 	// Thermostat Service	
 	// Current Heating/Cooling Mode characteristic
@@ -347,6 +361,10 @@ function loadData() {
 
 function getServices() {
 	return this.services;
+}
+
+function identify() {
+	this.log("Identify! (name: %s)", this.name);
 }
 
 function logStateChange(that) {
