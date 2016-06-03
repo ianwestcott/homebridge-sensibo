@@ -32,6 +32,7 @@ function SensiboPodAccessory(platform, device) {
 	this.name = device.room.name;
 	this.platform = platform;
 	this.log = platform.log;
+	this.debug = platform.debug;
 	this.state = {};
 	
 	var idKey = "hbdev:sensibo:pod:" + this.deviceid;
@@ -53,6 +54,7 @@ function SensiboPodAccessory(platform, device) {
 	that.temp_temperature = 16; // float
 	that.temp_humidity = 0; // int
 	that.temp_battery = 2600; // int in mV
+	that.coolingThresholdTemperature = 24; // float
 	// End of initial information
 
 	this.loadData();
@@ -161,15 +163,14 @@ function SensiboPodAccessory(platform, device) {
 			
 			// turn on or off and set the mode based on temperature choice and current temperature
 			// this should be modified, but for now, for Siri to work, this should be done
-			if (that.temp_temperature < value) {
-				that.state.on = true;
-				that.state.mode = "heat";
-			}
-			else if (that.temp_temperature >= value) {
-				that.state.on = true;
+			if (value <= that.coolingThresholdTemperature) {
 				that.state.mode = "cool";
 			}
+			else if (value > that.coolingThresholdTemperature) {
+				that.state.mode = "heat";
+			}
 			
+			that.state.on = true;
 			that.state.targetTemperature = Math.floor(value);
 			
 			that.platform.api.submitState(that.deviceid, that.state, function(data){
@@ -177,6 +178,18 @@ function SensiboPodAccessory(platform, device) {
 					logStateChange(that)
 				}
 			});
+		});
+		
+	// Cooling Threshold Temperature Characteristic
+	this.getService(Service.Thermostat)
+		.getCharacteristic(Characteristic.CoolingThresholdTemperature)
+		.on("get", function(callback) {
+			callback(null, that.coolingThresholdTemperature);
+		})
+		.on("set", function(value, callback) {
+			callback();
+			that.debug("Setting threshold (name: %s, threshold: %s)", that.name, value);
+			that.coolingThresholdTemperature = value;
 		});
 	
 	// Temperature Display Units characteristic
@@ -336,11 +349,11 @@ function getServices() {
 	return this.services;
 }
 
-function logStateChange(platform) {
-	platform.log("Changed status (name: %s, roomTemp: %s, on: %s, mode: %s, targetTemp: %s, speed: %s)", platform.name,
-																										 platform.temp_temperature,
-																										 platform.state.on,
-																		 								 platform.state.mode,
-																									     platform.state.targetTemperature,
-																										 platform.state.fanLevel);
+function logStateChange(that) {
+	that.log("Changed status (name: %s, roomTemp: %s, on: %s, mode: %s, targetTemp: %s, speed: %s)", that.name,
+																									 that.temp_temperature,
+																									 that.state.on,
+																		 							 that.state.mode,
+																									 that.state.targetTemperature,
+																									 that.state.fanLevel);
 }
