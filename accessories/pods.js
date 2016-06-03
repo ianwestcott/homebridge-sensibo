@@ -29,7 +29,7 @@ module.exports.SensiboPodAccessory = SensiboPodAccessory;
 function SensiboPodAccessory(platform, device) {
 	
 	this.deviceid = device.id;
-	this.name = device.room.name + " AC";
+	this.name = device.room.name;
 	this.platform = platform;
 	this.log = platform.log;
 	this.state = {};
