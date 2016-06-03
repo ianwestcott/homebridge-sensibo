@@ -18,31 +18,33 @@ module.exports = function (homebridge) {
 function SensiboPlatform(log, config) {
 	// Load Wink Authentication From Config File
 	this.apiKey = config["apiKey"];
+	this.apiDebug = config["apiDebug"];
 	this.api=sensibo;
 	this.log = log;
+	this.debug = log.debug;
 	this.deviceLookup = {};
 }
 
 SensiboPlatform.prototype = {
 	reloadData: function (callback) {
 		//This is called when we need to refresh all Wink device information.
-		//this.log("Refreshing Sensibo Data");
+		this.debug("Refreshing Sensibo Data");
 		for (var i = 0; i < this.deviceLookup.length; i++) {
 			this.deviceLookup[i].loadData();
 		}
 	},
 	accessories: function (callback) {
-		this.log("Fetching Sensibo devices.");
+		this.log("Fetching Sensibo devices...");
 
 		var that = this;
 		var foundAccessories = [];
 		this.deviceLookup = [];
 
 		var refreshLoop = function () {
-			setInterval(that.reloadData.bind(that), 30000);
+			setInterval(that.reloadData.bind(that), 40000);
 		};
-		sensibo.init(this.apiKey);
-		sensibo.getPods(function (devices) {
+		sensibo.init(this.apiKey, this.debug);
+		sensibo.getPods(that.log, function (devices) {
 				// success
 				for (var i = 0; i < devices.length; i++) {
 					var device = devices[i];
@@ -51,7 +53,7 @@ SensiboPlatform.prototype = {
 					accessory = new SensiboPodAccessory(that, device);
 
 					if (accessory != undefined) {
-						that.log("Device Added - Group " + accessory.deviceGroup + ", ID " + accessory.deviceid + ", Name " + accessory.name);
+						that.log("Device Added (Name: %s, ID: %s, Group: %s)", accessory.name, accessory.deviceid, accessory.deviceGroup);
 						that.deviceLookup.push(accessory);
 						foundAccessories.push(accessory);
 					}
