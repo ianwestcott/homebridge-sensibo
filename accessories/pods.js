@@ -1,377 +1,152 @@
-var inherits = require("util").inherits;
+const REFRESH_THRESHOLD = 2000
 
-var Accessory, Service, Characteristic, uuid;
+// 3.0V (logical full capacity)
+const BATTERY_MAX_VOLTAGE = 3000
+// 2.6V (estimated)
+const BATTERY_MIN_VOLTAGE = 2600
 
-/*
- *   Pod Accessory
- */
+const TEMPERATURE_UNIT_CELSIUS = 'C'
+const TEMPERATURE_UNIT_FAHRENHEIT = 'F'
 
-module.exports = function (oAccessory, oService, oCharacteristic, ouuid) {
-	if (oAccessory) {
-		Accessory = oAccessory;
-		Service = oService;
-		Characteristic = oCharacteristic;
-		uuid = ouuid;
+const MODE_COOL = 'cool'
+const MODE_DRY = 'dry'
+const MODE_HEAT = 'heat'
+const MODE_FAN = 'fan'
 
-		inherits(SensiboPodAccessory, Accessory);
-		SensiboPodAccessory.prototype.deviceGroup = "pods";
-		SensiboPodAccessory.prototype.loadData = loadData;
-		SensiboPodAccessory.prototype.getServices = getServices;
-		SensiboPodAccessory.prototype.refreshAll = refreshAll;
-		SensiboPodAccessory.prototype.refreshState = refreshState;
-		SensiboPodAccessory.prototype.refreshTemperature = refreshTemperature;
-		SensiboPodAccessory.prototype.identify = identify;
-	
-	}
-	return SensiboPodAccessory;
-};
-module.exports.SensiboPodAccessory = SensiboPodAccessory;
+const FAN_LEVEL_HIGH = 'high'
+const FAN_LEVEL_MEDIUM = 'medium'
+const FAN_LEVEL_LOW = 'low'
+const FAN_LEVEL_AUTO = 'auto'
 
-function SensiboPodAccessory(platform, device) {
-	
-	this.deviceid = device.id;
-	this.name = device.room.name;
-	this.platform = platform;
-	this.log = platform.log;
-	this.debug = platform.debug;
-	this.state = {};
-	
-	var idKey = "hbdev:sensibo:pod:" + this.deviceid;
-	var id = uuid.generate(idKey);
-	
-	Accessory.call(this, this.name, id);
-	var that = this;
-	
-	var batteryMaxVoltage = 3000; // 3.0V (logical full capacity)
-	var batteryMinVoltage = 2600; // 2.6V (estimated)
+module.exports = function (Accessory, Service, Characteristic, uuid) {
+  class SensiboPodAccessory extends Accessory {
+    constructor (platform, device) {
+      super(device.name.room, uuid.generate(`hbdev:sensibo:pod:${device.id}`))
+      this.device = device
+      this.name = device.name.room
+      this.platform = platform
+      this.log = platform.log
+      this.debug = platform.debug
+      this.deviceGroup = 'pods'
+      this.state = {
+        targetTemperature: 26,
+        temperatureUnit: TEMPERATURE_UNIT_CELSIUS,
+        on: false,
+        mode: MODE_COOL,
+        fanLevel: FAN_LEVEL_AUTO
+      }
+      this.sensor = { temperature: 16, humidity: 0, batteryVoltage: 2600 }
+      this.coolingThresholdTemperature = 24
+      const informationService = this.getServices(Service.AccessoryInformation)
+      informationService.setCharacteristic(
+        Characteristic.Manufacturer,
+        'homebridge-sensibo'
+      )
+      informationService.setCharacteristic(Characteristic.Model, '0.3.0')
+      informationService.setCharacteristic(
+        Characteristic.SerialNumber,
+        this.device.id
+      )
+      this
+        .addService(Service.HumiditySensor)
+        .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+        .on(
+          'get',
+          callback => callback(null, Math.round(this.sensor.humidity))
+        )
+      this
+        .addService(Service.TemperatureSensor)
+        .getCharacteristic(Characteristic.CurrentTemperature)
+        .on(
+          'get',
+          callback => callback(null, Math.round(this.sensor.temperature))
+        )
+      this
+        .addService(Service.HeaterCooler)
+        .getCharacteristic(Characteristic.Active)
+        .on('get', callback => callback(null, this.state.on))
+        .on('set', (value, callback) => {
+        })
+      this.loadData()
+    }
 
-	// HomeKit does really strange things since we have to wait on the data to get populated
-	// This is just intro information. It will be corrected in a couple of seconds.
-	that.state.targetTemperature = 25; // float
-	that.state.temperatureUnit = "C"; // "C" or "F"
-	that.state.on = false; // true or false
-	that.state.mode = "cool"; // "heat", "cool", "fan" or "off"
-	that.state.fanLevel = "auto"; // "auto", "high", "medium" or "low"
-	that.temp_temperature = 16; // float
-	that.temp_humidity = 0; // int
-	that.temp_battery = 2600; // int in mV
-	that.coolingThresholdTemperature = 24; // float
-	// End of initial information
+    loadData () {
+      this.refreshAll().then(() => {
+        this.services
+          .reduce(
+            (out, service) => {
+              return out.concat(service.characteristics)
+            },
+            []
+          )
+          .forEach(characteristic => {
+            characteristic.getValue()
+          })
+      })
+    }
 
-	this.loadData();
-	this.addService(Service.Thermostat);
-	this.addService(Service.Fan);
-	this.addService(Service.HumiditySensor);
-	
-	// AccessoryInformation characteristic
-	// Manufacturer characteristic
-	this.getService(Service.AccessoryInformation)
-		.setCharacteristic(Characteristic.Manufacturer, "homebridge-sensibo");
-	
-	// Model characteristic	
-	this.getService(Service.AccessoryInformation)
-		.setCharacteristic(Characteristic.Model, "version 0.2.0");
-	
-	// SerialNumber characteristic
-	this.getService(Service.AccessoryInformation)
-		.setCharacteristic(Characteristic.SerialNumber, "Pod ID: " + that.deviceid);
-	
-	// Thermostat Service	
-	// Current Heating/Cooling Mode characteristic
-	this.getService(Service.Thermostat)
-		.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
-		.on("get", function (callback) {
-		
-			if (!that.state.on) { // Convert state.on parameter to TargetHeatingCoolingState
-				callback(null, Characteristic.TargetHeatingCoolingState.OFF);
-			} else {
-				switch (that.state.mode) {
-					case "cool": // HomeKit only accepts HEAT/COOL/OFF, so we have to determine if we are Heating, Cooling or OFF.
-						callback(null, Characteristic.CurrentHeatingCoolingState.COOL);
-						break;
-					case "heat":
-						callback(null, Characteristic.CurrentHeatingCoolingState.HEAT);
-						break;
-					case "fan":
-						callback(null, Characteristic.CurrentHeatingCoolingState.COOL);
-						break;
-					default: // anything else then we'll report the thermostat as off.
-						callback(null, Characteristic.CurrentHeatingCoolingState.OFF);
-						break;
-				}
-			}
-		});
-		
-	// Target Heating/Cooling Mode characteristic
-	this.getService(Service.Thermostat)
-		.getCharacteristic(Characteristic.TargetHeatingCoolingState)
-		.on("get", function (callback) {
-		
-			if (!that.state.on) { // Convert state.on parameter to TargetHeatingCoolingState
-				callback(null, Characteristic.TargetHeatingCoolingState.OFF);
-			} else {
-				switch (that.state.mode) {
-					case "cool": // HomeKit only accepts HEAT/COOL/OFF, so we have to determine if we are Heating, Cooling or OFF.
-						callback(null, Characteristic.TargetHeatingCoolingState.COOL);
-						break;
-					case "heat":
-						callback(null, Characteristic.TargetHeatingCoolingState.HEAT);
-						break;
-					case "fan":
-						callback(null, Characteristic.TargetHeatingCoolingState.AUTO);
-						break;
-					default: // anything else then we'll report the thermostat as off.
-						callback(null, Characteristic.TargetHeatingCoolingState.OFF);
-						break;
-				}
-			}
-		})
-		.on("set", function (value, callback) {
-			callback();
-			switch (value) {
-				case Characteristic.TargetHeatingCoolingState.COOL:
-					that.state.mode = "cool";
-					that.state.on = true;
-					break;
-				case Characteristic.TargetHeatingCoolingState.HEAT:
-					that.state.mode = "heat";
-					that.state.on = true;
-					break;
-				case Characteristic.TargetHeatingCoolingState.AUTO:
-					that.state.mode = "fan";
-					that.state.on = true;
-					break;
-				default:
-					that.state.mode = "cool";
-					that.state.on = false;
-					break;
-			};
-			that.platform.api.submitState(that.deviceid, that.state, function(data){
-				if (data !== undefined) {
-					logStateChange(that)
-				}
-			});
-		});
+    getServices () {
+      return this.services
+    }
 
-	// Current Temperature characteristic
-	this.getService(Service.Thermostat)
-		.getCharacteristic(Characteristic.CurrentTemperature)
-		.on("get", function(callback) {
-			callback(null, that.temp_temperature);
-		});
+    refreshAll () {
+      return Promise.all([ this.refreshState(), this.refreshSensor() ])
+    }
 
-	// Target Temperature characteristic
-	this.getService(Service.Thermostat)
-		.getCharacteristic(Characteristic.TargetTemperature)
-		.on("get", function(callback) {
-			callback(null, that.state.targetTemperature); 	
-		})
-		.on("set", function(value, callback) {
-			callback();
-			
-			// limit temperature to Sensibo standards
-			if (value <= 16.0)
-				value = 16.0;
-			else if (value >= 30.0)
-				value = 30.0;
-			
-			// turn on or off and set the mode based on temperature choice and current temperature
-			// this should be modified, but for now, for Siri to work, this should be done
-			if (value <= that.coolingThresholdTemperature) {
-				that.state.mode = "cool";
-			}
-			else if (value > that.coolingThresholdTemperature) {
-				that.state.mode = "heat";
-			}
-			
-			that.state.on = true;
-			that.state.targetTemperature = Math.floor(value);
-			
-			that.platform.api.submitState(that.deviceid, that.state, function(data){
-				if (data !== undefined) {
-					logStateChange(that)
-				}
-			});
-		});
-		
-	// Cooling Threshold Temperature Characteristic
-	this.getService(Service.Thermostat)
-		.getCharacteristic(Characteristic.CoolingThresholdTemperature)
-		.on("get", function(callback) {
-			callback(null, that.coolingThresholdTemperature);
-		})
-		.on("set", function(value, callback) {
-			callback();
-			that.debug("Setting threshold (name: %s, threshold: %s)", that.name, value);
-			that.coolingThresholdTemperature = value;
-		});
-	
-	// Temperature Display Units characteristic
-	this.getService(Service.Thermostat)
-		.getCharacteristic(Characteristic.TemperatureDisplayUnits)
-		.on("get", function(callback) {
-			if (that.state.temperatureUnit=="F")
-				callback(null, Characteristic.TemperatureDisplayUnits.FAHRENHEIT); 	
-			else
-				callback(null, Characteristic.TemperatureDisplayUnits.CELSIUS); 	
-		});
-		
-	// Battery Level characteristic
-	this.getService(Service.Thermostat)
-		.addCharacteristic(Characteristic.BatteryLevel)
-		.on("get", function(callback) {
-		
-			// Convert battery level in mV to percentage
-			var batteryPercentage;
-		
-			if (that.temp_battery >= batteryMaxVoltage)
-				var batteryPercentage = 100;
-			else if (that.temp_battery <= batteryMinVoltage)
-				var batteryPercentage = 0;
-			else
-				var batteryPercentage = (that.temp_battery - batteryMinVoltage) / (batteryMaxVoltage - batteryMinVoltage);
-			
-			callback(null, batteryPercentage);
-		});
-	
-	// Fan Service
-	// On Characteristic
-	this.getService(Service.Fan)
-		.getCharacteristic(Characteristic.On)
-		.on("get", function (callback) {
-			callback(null, that.state.on);
-		})
-		.on("set", function(value, callback) {
-			callback();
-			that.state.on = value;
-			that.platform.api.submitState(that.deviceid, that.state, function(data){
-				if (data !== undefined) {
-					logStateChange(that)
-				}
-			});
-		});
-		
-	// Rotation Speed characteristic
-	this.getService(Service.Fan)
-		.addCharacteristic(Characteristic.RotationSpeed)
-		.on("get", function(callback) {
-			switch (that.state.fanLevel) {
-				case "low":
-					callback(null, 25);
-					break;
-				case "medium":
-					callback(null, 50);
-					break;
-				case "high":
-					callback(null, 100);
-					break;
-				case "auto":
-					callback(null, 0);
-					break;
-			}
-		})
-		.on("set", function(value, callback) {
-			callback();
-			if (value == 0)
-				that.state.fanLevel = "auto";
-			else if (value <= 40)
-				that.state.fanLevel = "low";
-			else if (value <= 75)
-				that.state.fanLevel = "medium";
-			else if (value <= 100)
-				that.state.fanLevel = "high";
-			that.platform.api.submitState(that.deviceid, that.state, function(str){
-				if (str["status"] == "success") {
-					logStateChange(that)
-				}
-			});
-		});
-	
-	// Relative Humidity Service
-	// Current Relative Humidity characteristic
-	this.getService(Service.HumiditySensor)
-		.getCharacteristic(Characteristic.CurrentRelativeHumidity)
-		.on("get", function(callback) {
-			callback(null, Math.round(that.temp_humidity)); // int value
-		});
-}
+    refreshState () {
+      const now = Date.now()
+      if (
+        this.state.updateTime && now - this.state.updateTime < REFRESH_THRESHOLD
+      ) {
+        return Promise.resolve()
+      }
 
-function refreshState(callback) {
-	// This prevents this from running more often
-	var that=this;
-	var rightnow = new Date();
-	
-	if (that.state.updatetime && (rightnow.getTime()-that.state.updatetime.getTime())<2000) { 
-		if (callback !== undefined) callback();
-		return
-	}
-	if (!that.state.updatetime) that.state.updatetime = rightnow; 
-	// Update the State
-	that.platform.api.getState(that.deviceid, function(acState) {
-		if (acState !== undefined ) {
-			that.state.targetTemperature = acState.targetTemperature;
-			that.state.temperatureUnit = acState.temperatureUnit;
-			that.state.on = acState.on;
-			that.state.mode = acState.mode;
-			that.state.fanLevel = acState.fanLevel;
-			that.state.updatetime = new Date(); // Set our last update time.
-		}
-		callback();
-	});		
-}
-	
-function refreshTemperature(callback) {
-	// This prevents this from running more often 
-	var that=this;
-	var rightnow = new Date();
-	if (that.temp_updatetime && (rightnow.getTime()-that.temp_updatetime.getTime())<2000) { 
-		if (callback !== undefined) callback();
-		return
-	}
-	if (!that.temp_updatetime) that.state.updatetime = rightnow; 
-	// Update the Temperature
-	var data;
-	that.platform.api.getMeasurements(that.deviceid, function(myData) {
-		data = myData;
-		if (data !== undefined) {
-			that.temp_temperature = data[0].temperature;
-			that.temp_humidity = data[0].humidity;
-			that.temp_battery = data[0].batteryVoltage;
-			that.temp_updatetime = new Date(); // Set our last update time.
-		}
-		if (callback) callback();
-	});
-}
+      return this.platform.api.getState(this.device.id).then(state => {
+        if (!state) return
+        this.state = Object.assign({}, state, { updateTime: now })
+      })
+    }
 
-function refreshAll(callback) {
-	var that=this;
-	this.refreshState(function() { that.refreshTemperature(callback); });
-}
-	
-function loadData() {
-	var that = this;
-	this.refreshAll(function() { 
-	for (var i = 0; i < that.services.length; i++) {
-		for (var j = 0; j < that.services[i].characteristics.length; j++) {
-			that.services[i].characteristics[j].getValue();
-		}
-	}
-	});			
-}
+    refreshSensor () {
+      const now = Date.now()
+      if (this.sensor.updateTime && now - this.sensor.updateTime < 2000) {
+        return Promise.resolve()
+      }
 
-function getServices() {
-	return this.services;
-}
+      return this.platform.api.getMeasurements(this.device.id).then(data => {
+        if (!data) return
+        this.sensor = Object.assign({}, data[0], { updateTime: now })
+      })
+    }
 
-function identify() {
-	this.log("Identify! (name: %s)", this.name);
-}
+    identify () {
+      this.log(`Idenfity! (name: ${this.name})`)
+    }
 
-function logStateChange(that) {
-	that.log("Changed status (name: %s, roomTemp: %s, on: %s, mode: %s, targetTemp: %s, speed: %s)", that.name,
-																									 that.temp_temperature,
-																									 that.state.on,
-																		 							 that.state.mode,
-																									 that.state.targetTemperature,
-																									 that.state.fanLevel);
+    logStateChange () {
+      this.log(
+        `Changed status (name: ${this.name}, temperature: ${this.sensor.temperature}, on: ${this.state.on}, mode: ${this.state.mode}, targetTemperature: ${this.state.targetTemperature}, fan speed: ${this.state.fanLevel})`
+      )
+    }
+  }
+
+  module.exports.SensiboPodAccessory = SensiboPodAccessory
+
+  module.exports.REFRESH_THRESHOLD = REFRESH_THRESHOLD
+
+  module.exports.BATTERY_MAX_VOLTAGE = BATTERY_MAX_VOLTAGE
+  module.exports.BATTERY_MIN_VOLTAGE = BATTERY_MIN_VOLTAGE
+
+  module.exports.TEMPERATURE_UNIT_CELSIUS = TEMPERATURE_UNIT_CELSIUS
+  module.exports.TEMPERATURE_UNIT_FAHRENHEIT = TEMPERATURE_UNIT_FAHRENHEIT
+
+  module.exports.MODE_COOL = MODE_COOL
+  module.exports.MODE_DRY = MODE_DRY
+  module.exports.MODE_HEAT = MODE_HEAT
+  module.exports.MODE_FAN = MODE_FAN
+
+  module.exports.FAN_LEVEL_HIGH = FAN_LEVEL_HIGH
+  module.exports.FAN_LEVEL_MEDIUM = FAN_LEVEL_MEDIUM
+  module.exports.FAN_LEVEL_LOW = FAN_LEVEL_LOW
+  module.exports.FAN_LEVEL_AUTO = FAN_LEVEL_AUTO
 }

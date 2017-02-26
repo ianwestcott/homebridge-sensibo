@@ -48,7 +48,7 @@ SensiboPlatform.prototype = {
 				// success
 				for (var i = 0; i < devices.length; i++) {
 					var device = devices[i];
-					
+
 					var accessory = undefined;
 					accessory = new SensiboPodAccessory(that, device);
 
