@@ -149,4 +149,6 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
   module.exports.FAN_LEVEL_MEDIUM = FAN_LEVEL_MEDIUM
   module.exports.FAN_LEVEL_LOW = FAN_LEVEL_LOW
   module.exports.FAN_LEVEL_AUTO = FAN_LEVEL_AUTO
+
+  return SensiboPodAccessory
 }
