@@ -35,7 +35,7 @@ module.exports = homebridge => {
         })
         this.refresh()
         callback(this.devices)
-      })
+      }).catch(error => { console.error(error) })
     }
   }
 

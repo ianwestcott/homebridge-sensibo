@@ -21,9 +21,9 @@ const FAN_LEVEL_AUTO = 'auto'
 module.exports = function (Accessory, Service, Characteristic, uuid) {
   class SensiboPodAccessory extends Accessory {
     constructor (platform, device) {
-      super(device.name.room, uuid.generate(`hbdev:sensibo:pod:${device.id}`))
+      super(device.room.name, uuid.generate(`hbdev:sensibo:pod:${device.id}`))
       this.device = device
-      this.name = device.name.room
+      this.name = device.room.name
       this.platform = platform
       this.log = platform.log
       this.debug = platform.debug
