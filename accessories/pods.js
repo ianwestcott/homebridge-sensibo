@@ -37,7 +37,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
       }
       this.sensor = { temperature: 16, humidity: 0, batteryVoltage: 2600 }
       this.coolingThresholdTemperature = 24
-      const informationService = this.getServices(Service.AccessoryInformation)
+      const informationService = this.getService(Service.AccessoryInformation)
       informationService.setCharacteristic(
         Characteristic.Manufacturer,
         'homebridge-sensibo'
