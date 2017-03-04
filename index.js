@@ -28,7 +28,7 @@ module.exports = homebridge => {
       this.api.getPods().then(pods => {
         pods.forEach(pod => {
           const accessory = new SensiboPodAccessory(this, pod)
-          if (pod) {
+          if (accessory) {
             this.log(`Device Added (Name: ${accessory.name}, ID: ${accessory.deviceid}, Group: ${accessory.deviceGroup})`)
             this.devices.push(accessory)
           }
