@@ -19,7 +19,7 @@ module.exports = homebridge => {
     }
 
     refresh () {
-      setInterval(this.reloadData(), 40000)
+      setInterval(() => this.reloadData(), 40000)
     }
 
     accessories (callback) {
