@@ -18,6 +18,12 @@ const FAN_LEVEL_MEDIUM = 'medium'
 const FAN_LEVEL_LOW = 'low'
 const FAN_LEVEL_AUTO = 'auto'
 
+const PROPERTY_ON = 'on'
+const PROPERTY_MODE = 'mode'
+const PROPERTY_FAN_LEVEL = 'fanLevel'
+const PROPERTY_TARGET_TEMPERATURE = 'targetTemperature'
+const SWING = 'swing'
+
 module.exports = function (Accessory, Service, Characteristic, uuid) {
   class SensiboPodAccessory extends Accessory {
     constructor (platform, device) {
@@ -62,11 +68,18 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
           callback => callback(null, Math.round(this.sensor.temperature))
         )
       this
-        .addService(Service.HeaterCooler)
-        .getCharacteristic(Characteristic.Active)
+        .addService(Service.Switch)
+        .get(Characteristic.On)
         .on('get', callback => callback(null, this.state.on))
         .on('set', (value, callback) => {
+          this.platform.api.updateState(this.device.id, PROPERTY_ON, value, this.state)
+            .then(() => {
+              this.state.on = value
+              callback()
+            })
         })
+      this
+        .addService(Service.Thermostat)
       this.loadData()
     }
 
