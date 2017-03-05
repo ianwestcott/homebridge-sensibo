@@ -55,20 +55,32 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
         Characteristic.SerialNumber,
         this.device.id
       )
+      this.handleAll()
+      this.loadData()
+    }
+
+    handleAll () {
+      this.handleHumiditySensor()
+      this.handleTemperatureSensor()
+      this.handleSwitch()
+      this.handleThermostat()
+    }
+
+    handleHumiditySensor () {
       this
         .addService(Service.HumiditySensor)
-        .getCharacteristic(Characteristic.CurrentRelativeHumidity)
-        .on(
-          'get',
-          callback => callback(null, Math.round(this.sensor.humidity))
-        )
+          .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+            .on('get', callback => callback(null, Math.round(this.sensor.humidity)))
+    }
+
+    handleTemperatureSensor () {
       this
         .addService(Service.TemperatureSensor)
-        .getCharacteristic(Characteristic.CurrentTemperature)
-        .on(
-          'get',
-          callback => callback(null, Math.round(this.sensor.temperature))
-        )
+          .getCharacteristic(Characteristic.CurrentTemperature)
+            .on('get', callback => callback(null, this.sensor.temperature.toFixed(2)))
+    }
+
+    handleSwitch () {
       this
         .addService(Service.Switch)
           .getCharacteristic(Characteristic.On)
@@ -81,9 +93,29 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
                   callback()
                 })
             })
-      this
-        .addService(Service.Thermostat)
-      this.loadData()
+    }
+
+    handleThermostat () {
+      const thermoStat = this.addService(Service.Thermostat)
+      thermoStat.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
+        .on('get', callback => {
+          if (!this.state.on) {
+            return callback(null, Characteristic.CurrentHeatingCoolingState.OFF)
+          }
+          const mode = this.state.mode === MODE_HEAT
+            ? Characteristic.CurrentHeatingCoolingState.HEAT
+            : Characteristic.CurrentHeatingCoolingState.COOL
+          callback(null, mode)
+        })
+      .on('set', (value, callback) => {
+        console.log(value)
+        callback()
+      })
+
+      thermoStat.getCharacteristic(Characteristic.CurrentTemperature)
+        .on('get', callback => callback(null, this.sensor.temperature.toFixed(2)))
+      thermoStat.getCharacteristic(Characteristic.CurrentRelativeHumidity)
+        .on('get', callback => callback(null, Math.round(this.sensor.humidity)))
     }
 
     loadData () {
