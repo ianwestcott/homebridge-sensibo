@@ -107,15 +107,43 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
             : Characteristic.CurrentHeatingCoolingState.COOL
           callback(null, mode)
         })
-      .on('set', (value, callback) => {
-        console.log(value)
-        callback()
-      })
+      thermoStat.getCharacteristic(Characteristic.TargetHeatingCoolingState)
+        .on('get', callback => {
+          if (!this.state.on) {
+            return callback(null, Characteristic.CurrentHeatingCoolingState.OFF)
+          }
+          const mode = this.state.mode === MODE_HEAT
+            ? Characteristic.TargetHeatingCoolingState.HEAT
+            : this.state.mode === MODE_COOL
+            ? Characteristic.TargetHeatingCoolingState.COOL
+            : Characteristic.TargetHeatingCoolingState.AUTO
+          callback(null, mode)
+        })
+        .on('set', (value, callback) => {
+          console.log('set target heating cooling state', value)
+          callback()
+        })
 
       thermoStat.getCharacteristic(Characteristic.CurrentTemperature)
         .on('get', callback => callback(null, this.sensor.temperature.toFixed(2)))
-      thermoStat.getCharacteristic(Characteristic.CurrentRelativeHumidity)
-        .on('get', callback => callback(null, Math.round(this.sensor.humidity)))
+      thermoStat.getCharacteristic(Characteristic.TargetTemperature)
+        .on('get', callback => callback(null, this.state.TargetTemperature))
+        .on('set', (value, callback) => {
+          console.log('set target temperature', value)
+          callback()
+        })
+
+      thermoStat.getCharacteristic(Characteristic.TemperatureDisplayUnits)
+        .on('get', callback => {
+          callback(null,
+            this.state.temperatureUnit === TEMPERATURE_UNIT_CELSIUS
+            ? Characteristic.TemperatureDisplayUnits.CELSIUS
+            : Characteristic.TemperatureDisplayUnits.FAHRENHEIT)
+        })
+        .on('set', (value, callback) => {
+          console.log('set temperatureUnit', value)
+          callback()
+        })
     }
 
     loadData () {
