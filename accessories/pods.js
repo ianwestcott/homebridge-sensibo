@@ -125,7 +125,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
         .on('set', (value, callback) => {
           if (value === Characteristic.TargetHeatingCoolingState.OFF) {
             this.getService(Service.Switch).setCharacteristic(Characteristic.On, false)
-            callback()
+            return callback()
           }
           const map = {
             [Characteristic.TargetHeatingCoolingState.HEAT]: MODE_HEAT,
