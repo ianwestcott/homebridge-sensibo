@@ -8,6 +8,8 @@ const BATTERY_MIN_VOLTAGE = 2600
 const TEMPERATURE_UNIT_CELSIUS = 'C'
 const TEMPERATURE_UNIT_FAHRENHEIT = 'F'
 
+const IS_ON = 1
+
 const MODE_COOL = 'cool'
 const MODE_DRY = 'dry'
 const MODE_HEAT = 'heat'
@@ -22,7 +24,7 @@ const PROPERTY_ON = 'on'
 const PROPERTY_MODE = 'mode'
 const PROPERTY_FAN_LEVEL = 'fanLevel'
 const PROPERTY_TARGET_TEMPERATURE = 'targetTemperature'
-const SWING = 'swing'
+const PROPERTY_SWING = 'swing'
 
 module.exports = function (Accessory, Service, Characteristic, uuid) {
   class SensiboPodAccessory extends Accessory {
@@ -72,9 +74,10 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
           .getCharacteristic(Characteristic.On)
             .on('get', callback => callback(null, this.state.on))
             .on('set', (value, callback) => {
-              this.platform.api.updateState(this.device.id, PROPERTY_ON, value, this.state)
+              const booleanValue = Boolean(value)
+              this.platform.api.updateState(this.device.id, PROPERTY_ON, booleanValue, this.state)
                 .then(() => {
-                  this.state.on = value
+                  this.state.on = booleanValue
                   callback()
                 })
             })
@@ -116,7 +119,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
 
       return this.platform.api.getState(this.device.id).then(state => {
         if (!state) return
-        this.state = Object.assign({}, state, { updateTime: now })
+        this.state = Object.assign({}, state.acState, { updateTime: now })
       })
     }
 
