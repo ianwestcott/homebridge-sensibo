@@ -17,7 +17,7 @@ Configuration sample:
 			"platform": "Sensibo",
 			"name": "Sensibo",
 			"apiKey": "YOUR_SENSIBO_API_ID",
-      "useHeatAsDry": true
+      "heatAsDry": true
 		}
 	],
 
