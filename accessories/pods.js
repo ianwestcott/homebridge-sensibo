@@ -8,12 +8,11 @@ const BATTERY_MIN_VOLTAGE = 2600
 const TEMPERATURE_UNIT_CELSIUS = 'C'
 const TEMPERATURE_UNIT_FAHRENHEIT = 'F'
 
-const IS_ON = 1
-
 const MODE_COOL = 'cool'
 const MODE_DRY = 'dry'
 const MODE_HEAT = 'heat'
 const MODE_FAN = 'fan'
+const MODE_AUTO = 'auto'
 
 const FAN_LEVEL_HIGH = 'high'
 const FAN_LEVEL_MEDIUM = 'medium'
@@ -92,6 +91,10 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
                   this.state.on = booleanValue
                   callback()
                 })
+                .catch(error => {
+                  this.log.error(error)
+                  callback(error)
+                })
             })
     }
 
@@ -120,8 +123,25 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
           callback(null, mode)
         })
         .on('set', (value, callback) => {
-          console.log('set target heating cooling state', value)
-          callback()
+          if (value === Characteristic.TargetHeatingCoolingState.OFF) {
+            this.getService(Service.Switch).setCharacteristic(Characteristic.On, false)
+            callback()
+          }
+          const map = {
+            [Characteristic.TargetHeatingCoolingState.HEAT]: MODE_HEAT,
+            [Characteristic.TargetHeatingCoolingState.COOL]: MODE_COOL,
+            [Characteristic.TargetHeatingCoolingState.AUTO]: MODE_AUTO
+          }
+          this.log('set target heating cooling state', value, map[value])
+          this.platform.api.updateState(this.device.id, PROPERTY_MODE, map[value], this.state)
+            .then(() => {
+              this.state.mode = map[value]
+              callback()
+            })
+            .catch(error => {
+              this.log.error(error)
+              callback(error)
+            })
         })
 
       thermoStat.getCharacteristic(Characteristic.CurrentTemperature)
