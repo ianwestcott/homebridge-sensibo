@@ -128,7 +128,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
             return callback()
           }
           const map = {
-            [Characteristic.TargetHeatingCoolingState.HEAT]: this.config.useHeatAsDry ? MODE_DRY : MODE_HEAT,
+            [Characteristic.TargetHeatingCoolingState.HEAT]: this.platform.config.useHeatAsDry ? MODE_DRY : MODE_HEAT,
             [Characteristic.TargetHeatingCoolingState.COOL]: MODE_COOL,
             [Characteristic.TargetHeatingCoolingState.AUTO]: MODE_AUTO
           }
