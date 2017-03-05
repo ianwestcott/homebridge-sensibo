@@ -69,15 +69,15 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
         )
       this
         .addService(Service.Switch)
-        .get(Characteristic.On)
-        .on('get', callback => callback(null, this.state.on))
-        .on('set', (value, callback) => {
-          this.platform.api.updateState(this.device.id, PROPERTY_ON, value, this.state)
-            .then(() => {
-              this.state.on = value
-              callback()
+          .getCharacteristic(Characteristic.On)
+            .on('get', callback => callback(null, this.state.on))
+            .on('set', (value, callback) => {
+              this.platform.api.updateState(this.device.id, PROPERTY_ON, value, this.state)
+                .then(() => {
+                  this.state.on = value
+                  callback()
+                })
             })
-        })
       this
         .addService(Service.Thermostat)
       this.loadData()
