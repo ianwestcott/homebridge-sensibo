@@ -5,7 +5,7 @@
 
 1. Install homebridge using: npm install -g homebridge
 2. Install this plugin using: npm install -g homebridge-sensibo
-3. Update your configuration file. See sample config.json snippet below. 
+3. Update your configuration file. See sample config.json snippet below.
 
 # Configuration
 
@@ -16,13 +16,14 @@ Configuration sample:
 		{
 			"platform": "Sensibo",
 			"name": "Sensibo",
-			"apiKey": "YOUR_SENSIBO_API_ID"			
+			"apiKey": "YOUR_SENSIBO_API_ID",
+      "useHeatAsDry": true
 		}
 	],
 
 ```
 
-Fields: 
+Fields:
 
 * "platform": Must always be "Sensibo" (required)
 * "name": Can be anything (required)
