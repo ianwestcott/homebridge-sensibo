@@ -115,7 +115,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
           if (!this.state.on) {
             return callback(null, Characteristic.TargetHeatingCoolingState.OFF)
           }
-          const mode = this.state.mode === MODE_HEAT
+          const mode = this.state.mode === MODE_HEAT || this.state.mode === MODE_DRY
             ? Characteristic.TargetHeatingCoolingState.HEAT
             : this.state.mode === MODE_COOL
             ? Characteristic.TargetHeatingCoolingState.COOL
@@ -128,7 +128,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
             return callback()
           }
           const map = {
-            [Characteristic.TargetHeatingCoolingState.HEAT]: MODE_HEAT,
+            [Characteristic.TargetHeatingCoolingState.HEAT]: this.config.useHeatAsDry ? MODE_DRY : MODE_HEAT,
             [Characteristic.TargetHeatingCoolingState.COOL]: MODE_COOL,
             [Characteristic.TargetHeatingCoolingState.AUTO]: MODE_AUTO
           }

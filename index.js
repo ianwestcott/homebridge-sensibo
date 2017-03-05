@@ -11,6 +11,7 @@ module.exports = homebridge => {
       this.log = log
       this.debug = log.debug
       this.devices = []
+      this.config = config
     }
 
     reloadData (callback) {
