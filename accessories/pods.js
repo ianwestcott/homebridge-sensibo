@@ -110,7 +110,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
       thermoStat.getCharacteristic(Characteristic.TargetHeatingCoolingState)
         .on('get', callback => {
           if (!this.state.on) {
-            return callback(null, Characteristic.CurrentHeatingCoolingState.OFF)
+            return callback(null, Characteristic.TargetHeatingCoolingState.OFF)
           }
           const mode = this.state.mode === MODE_HEAT
             ? Characteristic.TargetHeatingCoolingState.HEAT
@@ -127,7 +127,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
       thermoStat.getCharacteristic(Characteristic.CurrentTemperature)
         .on('get', callback => callback(null, this.sensor.temperature.toFixed(1)))
       thermoStat.getCharacteristic(Characteristic.TargetTemperature)
-        .on('get', callback => callback(null, this.state.TargetTemperature))
+        .on('get', callback => callback(null, this.state.targetTemperature))
         .on('set', (value, callback) => {
           console.log('set target temperature', value)
           callback()
