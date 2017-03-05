@@ -77,7 +77,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
       this
         .addService(Service.TemperatureSensor)
           .getCharacteristic(Characteristic.CurrentTemperature)
-            .on('get', callback => callback(null, this.sensor.temperature.toFixed(2)))
+            .on('get', callback => callback(null, this.sensor.temperature.toFixed(1)))
     }
 
     handleSwitch () {
