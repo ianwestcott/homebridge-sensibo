@@ -27,6 +27,14 @@ const PROPERTY_NATIVE_TARGET_TEMPERATURE = 'nativeTargetTemperature'
 const PROPERTY_NATIVE_TEMPERATURE_UNIT = 'nativeTemperatureUnit'
 const PROPERTY_SWING = 'swing'
 
+function toCelsius (temperature) {
+  return Math.round((temperature - 32) * 5 / 9);
+}
+
+function toFahrenheit (temperature) {
+  return Math.round(temperature * 9 / 5 + 32);
+}
+
 module.exports = function (Accessory, Service, Characteristic, uuid) {
   class SensiboPodAccessory extends Accessory {
     constructor (platform, device) {
@@ -136,7 +144,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
             [Characteristic.TargetHeatingCoolingState.COOL]: MODE_COOL,
             [Characteristic.TargetHeatingCoolingState.AUTO]: MODE_AUTO
           }
-          this.log('set target heating cooling state', value, map[value])
+          this.log('set target heating cooling state to', map[value])
           this.platform.api.updateState(this.device.id, PROPERTY_MODE, map[value], this.state)
             .then(() => {
               this.state.mode = map[value]
@@ -151,10 +159,26 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
       thermoStat.getCharacteristic(Characteristic.CurrentTemperature)
         .on('get', callback => callback(null, this.sensor.temperature.toFixed(1)))
       thermoStat.getCharacteristic(Characteristic.TargetTemperature)
-        .on('get', callback => callback(null, this.state.targetTemperature))
+        .on('get', callback => {
+          const temperature = this.state.temperatureUnit === TEMPERATURE_UNIT_CELSIUS
+            ? this.state.targetTemperature
+            : toCelsius(this.state.targetTemperature)
+          callback(null, temperature)
+        })
         .on('set', (value, callback) => {
-          console.log('set target temperature', value)
-          callback()
+          const targetTemperature = this.state.temperatureUnit === TEMPERATURE_UNIT_CELSIUS
+            ? Math.round(value)
+            : toFahrenheit(value)
+          this.log('set target temperature to', targetTemperature)
+          this.platform.api.updateState(this.device.id, PROPERTY_TARGET_TEMPERATURE, targetTemperature, this.state)
+            .then(() => {
+              this.state.targetTemperature = targetTemperature
+              callback()
+            })
+            .catch(error => {
+              this.log.error(error)
+              callback(error)
+            })
         })
 
       thermoStat.getCharacteristic(Characteristic.TemperatureDisplayUnits)
@@ -165,7 +189,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
             : Characteristic.TemperatureDisplayUnits.FAHRENHEIT)
         })
         .on('set', (value, callback) => {
-          console.log('set temperatureUnit', value)
+          this.log('set temperatureUnit', value)
           callback()
         })
     }
