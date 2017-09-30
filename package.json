@@ -19,7 +19,8 @@
 	"dependencies": {
 		"co": "^4.6.0",
 		"lodash": "^4.17.4",
-		"node-fetch": "^1.6.3"
+		"node-fetch": "^1.6.3",
+		"debug": "^2.6.9"
 	},
 	"devDependencies": {
 		"standard": "^8.6.0"
