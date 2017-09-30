@@ -114,11 +114,9 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
       const thermoStat = this.addService(Service.Thermostat)
       thermoStat.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
         .on('get', callback => {
-          this.debug('get current heating cooling state')
           if (!this.state.on) {
             return callback(null, Characteristic.CurrentHeatingCoolingState.OFF)
           }
-          // TODO support fan (and dry?) mode
           const mode = this.state.mode === MODE_HEAT
             ? Characteristic.CurrentHeatingCoolingState.HEAT
             : Characteristic.CurrentHeatingCoolingState.COOL
@@ -126,7 +124,6 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
         })
       thermoStat.getCharacteristic(Characteristic.TargetHeatingCoolingState)
         .on('get', callback => {
-          this.debug('get target heating cooling state')
           if (!this.state.on) {
             return callback(null, Characteristic.TargetHeatingCoolingState.OFF)
           }
@@ -147,7 +144,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
             [Characteristic.TargetHeatingCoolingState.COOL]: MODE_COOL,
             [Characteristic.TargetHeatingCoolingState.AUTO]: MODE_AUTO
           }
-          this.debug('set target heating cooling state', value, map[value])
+          this.log('set target heating cooling state to', map[value])
           this.platform.api.updateState(this.device.id, PROPERTY_MODE, map[value], this.state)
             .then(() => {
               this.state.mode = map[value]
@@ -163,7 +160,6 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
         .on('get', callback => callback(null, this.sensor.temperature.toFixed(1)))
       thermoStat.getCharacteristic(Characteristic.TargetTemperature)
         .on('get', callback => {
-          this.debug('get target temperature')
           const temperature = this.state.temperatureUnit === TEMPERATURE_UNIT_CELSIUS
             ? this.state.targetTemperature
             : toCelsius(this.state.targetTemperature)
@@ -173,7 +169,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
           const targetTemperature = this.state.temperatureUnit === TEMPERATURE_UNIT_CELSIUS
             ? Math.round(value)
             : toFahrenheit(value)
-          this.debug('set target temperature', targetTemperature)
+          this.log('set target temperature to', targetTemperature)
           this.platform.api.updateState(this.device.id, PROPERTY_TARGET_TEMPERATURE, targetTemperature, this.state)
             .then(() => {
               this.state.targetTemperature = targetTemperature
@@ -193,7 +189,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
             : Characteristic.TemperatureDisplayUnits.FAHRENHEIT)
         })
         .on('set', (value, callback) => {
-          this.debug('set temperatureUnit', value)
+          this.log('set temperatureUnit', value)
           callback()
         })
     }
