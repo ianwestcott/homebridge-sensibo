@@ -23,6 +23,8 @@ const PROPERTY_ON = 'on'
 const PROPERTY_MODE = 'mode'
 const PROPERTY_FAN_LEVEL = 'fanLevel'
 const PROPERTY_TARGET_TEMPERATURE = 'targetTemperature'
+const PROPERTY_NATIVE_TARGET_TEMPERATURE = 'nativeTargetTemperature'
+const PROPERTY_NATIVE_TEMPERATURE_UNIT = 'nativeTemperatureUnit'
 const PROPERTY_SWING = 'swing'
 
 module.exports = function (Accessory, Service, Characteristic, uuid) {
@@ -36,8 +38,10 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
       this.debug = platform.debug
       this.deviceGroup = 'pods'
       this.state = {
-        targetTemperature: 26,
-        temperatureUnit: TEMPERATURE_UNIT_CELSIUS,
+        targetTemperature: 72,
+        nativeTargetTemperature: 22,
+        temperatureUnit: TEMPERATURE_UNIT_FAHRENHEIT,
+        nativeTemperatureUnit: TEMPERATURE_UNIT_CELSIUS,
         on: false,
         mode: MODE_COOL,
         fanLevel: FAN_LEVEL_AUTO
