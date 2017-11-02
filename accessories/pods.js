@@ -40,7 +40,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
     constructor (platform, device) {
       super(device.room.name, uuid.generate(`hbdev:sensibo:pod:${device.id}`))
       this.device = device
-      this.name = device.room.name
+      this.name = device.room.name.replace(/[^\d\w\s']/, " ")
       this.platform = platform
       this.log = platform.log
       this.debug = platform.debug
@@ -79,21 +79,21 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
 
     handleHumiditySensor () {
       this
-        .addService(Service.HumiditySensor)
+        .addService(Service.HumiditySensor, `${this.name} Humidity`)
           .getCharacteristic(Characteristic.CurrentRelativeHumidity)
             .on('get', callback => callback(null, Math.round(this.sensor.humidity)))
     }
 
     handleTemperatureSensor () {
       this
-        .addService(Service.TemperatureSensor)
+        .addService(Service.TemperatureSensor, `${this.name} Temperature`)
           .getCharacteristic(Characteristic.CurrentTemperature)
             .on('get', callback => callback(null, this.sensor.temperature.toFixed(1)))
     }
 
     handleSwitch () {
       this
-        .addService(Service.Switch)
+        .addService(Service.Switch, `${this.name} Power`)
           .getCharacteristic(Characteristic.On)
             .on('get', callback => callback(null, this.state.on))
             .on('set', (value, callback) => {
@@ -111,7 +111,7 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
     }
 
     handleThermostat () {
-      const thermoStat = this.addService(Service.Thermostat)
+      const thermoStat = this.addService(Service.Thermostat, `${this.name} Thermostat`)
       thermoStat.getCharacteristic(Characteristic.CurrentHeatingCoolingState)
         .on('get', callback => {
           if (!this.state.on) {
