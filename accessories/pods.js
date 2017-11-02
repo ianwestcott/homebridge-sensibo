@@ -54,6 +54,8 @@ module.exports = function (Accessory, Service, Characteristic, uuid) {
         mode: MODE_COOL,
         fanLevel: FAN_LEVEL_AUTO
       }
+      // TODO implement this.capabilities
+      // (instantiate with dummy values? make api call via promise?)
       this.sensor = { temperature: 16, humidity: 0, batteryVoltage: 2600 }
       this.coolingThresholdTemperature = 24
       const informationService = this.getService(Service.AccessoryInformation)
