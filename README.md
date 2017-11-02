@@ -16,8 +16,7 @@ Configuration sample:
 		{
 			"platform": "Sensibo",
 			"name": "Sensibo",
-			"apiKey": "YOUR_SENSIBO_API_ID",
-      "heatAsDry": true
+			"apiKey": "YOUR_SENSIBO_API_ID"
 		}
 	],
 
@@ -31,7 +30,7 @@ Fields:
 
 # Usage Notes
 
-* This should work but I am getting some messages from the API that indicate an incorrect setup on my test unit. Please try it and let me know if you have problems. Errors from the API are logged in output.  
+* This should work but I am getting some messages from the API that indicate an incorrect setup on my test unit. Please try it and let me know if you have problems. Errors from the API are logged in output.
 * The fan shows as a different Service on the Accessory that has it's own on off and speed control.
 * If the fan is turned on, the system is switched to "fan" mode and AC or heat will be turned off.
 * The fan speed control should work even in Cool or Heat mode.
