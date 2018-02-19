@@ -9,7 +9,6 @@ This is a fork of [llun's fork](https://github.com/llun/homebridge-sensibo) of [
 * Support for adjusting swing state _(TODO: not yet functional)_
 * Support for battery status reporting
 * Support for checking device capabilities via Sensibo API _(TODO: Only activate functionality based on capabilities reported by Sensibo API)_
-
 * Fixed bugs around handling of temperature unit between Sensibo API and HomeKit
 * Fixed: Strip characters unsupported by HomeKit from Sensibo device name
 * Improved state handling and mode switching
@@ -33,7 +32,7 @@ Configuration sample:
 			"platform": "Sensibo",
 			"name": "Sensibo",
 			"apiKey": "YOUR_SENSIBO_API_ID",
-            "temperatureUnit": "F"
+			"temperatureUnit": "F"
 		}
 	],
 
